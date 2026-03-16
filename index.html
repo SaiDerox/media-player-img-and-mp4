@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lector Multimedia</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0f0f13;
+            --surface: #1a1a22;
+            --surface2: #22222e;
+            --accent: #7c6af7;
+            --accent2: #a78bfa;
+            --text: #e8e8f0;
+            --text2: #9090a8;
+            --border: #2e2e3e;
+            --red: #f76a6a;
+            --green: #6af7a0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header h1 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--accent2);
+            letter-spacing: -0.02em;
+        }
+
+        .header-stats {
+            margin-left: auto;
+            display: flex;
+            gap: 20px;
+            font-size: 0.82rem;
+            color: var(--text2);
+        }
+
+        .stat-pill {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .stat-pill span {
+            color: var(--accent2);
+            font-weight: 600;
+        }
+
+        /* ── Toolbar ── */
+        .toolbar {
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .upload-btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-btn:hover { background: var(--accent2); transform: translateY(-1px); }
+        .upload-btn:active { transform: translateY(0); }
+
+        input[type="file"] { display: none; }
+
+        .filter-group {
+            display: flex;
+            gap: 6px;
+            margin-left: 8px;
+        }
+
+        .filter-btn {
+            background: var(--surface2);
+            color: var(--text2);
+            border: 1px solid var(--border);
+            padding: 7px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+        .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+        .search-box {
+            margin-left: auto;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            width: 220px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box:focus { border-color: var(--accent); }
+        .search-box::placeholder { color: var(--text2); }
+
+        /* ── Progress ── */
+        #progress-bar-wrap {
+            display: none;
+            padding: 10px 32px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+            gap: 14px;
+        }
+
+        #progress-bar-wrap.visible { display: flex; }
+
+        .progress-track {
+            flex: 1;
+            height: 6px;
+            background: var(--surface2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        #progress-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.1s;
+            border-radius: 3px;
+        }
+
+        #progress-label { font-size: 0.8rem; color: var(--text2); min-width: 160px; text-align: right; }
+
+        /* ── Gallery ── */
+        .gallery-wrap { padding: 24px 32px; }
+
+        #gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 14px;
+        }
+
+        /* ── Card ── */
+        .media-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color 0.2s, transform 0.2s;
+            position: relative;
+        }
+
+        .media-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-3px);
+        }
+
+        .thumb-wrap {
+            width: 100%;
+            height: 150px;
+            background: var(--surface2);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .thumb-wrap img,
+        .thumb-wrap video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .type-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .type-badge.image { background: rgba(106,247,160,0.85); color: #0f2e1a; }
+        .type-badge.video { background: rgba(247,106,106,0.85); color: #2e0f0f; }
+
+        .play-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            opacity: 0;
+            background: rgba(0,0,0,0.3);
+            transition: opacity 0.2s;
+        }
+
+        .media-card:hover .play-overlay { opacity: 1; }
+
+        .card-info {
+            padding: 10px 12px;
+        }
+
+        .card-name {
+            font-size: 0.82rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text);
+        }
+
+        .card-meta {
+            font-size: 0.72rem;
+            color: var(--text2);
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(247,106,106,0.9);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 5;
+            line-height: 1;
+        }
+
+        .media-card:hover .delete-btn { opacity: 1; }
+
+        /* ── Pagination ── */
+        #pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 24px 32px;
+        }
+
+        .page-btn {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 36px;
+            text-align: center;
+        }
+
+        .page-btn:hover { border-color: var(--accent); }
+        .page-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        #page-info { font-size: 0.82rem; color: var(--text2); margin: 0 8px; }
+
+        /* ── Empty state ── */
+        #empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text2);
+        }
+
+        #empty-state .icon { font-size: 3.5rem; margin-bottom: 16px; }
+        #empty-state h3 { font-size: 1.1rem; margin-bottom: 6px; color: var(--text); }
+        #empty-state p { font-size: 0.85rem; }
+
+        /* ── Modal ── */
+        #modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.96);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #modal.active { display: flex; }
+
+        #modal-content {
+            max-width: 92vw;
+            max-height: 88vh;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #modal-content img,
+        #modal-content video {
+            max-width: 92vw;
+            max-height: 88vh;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+
+        .modal-close {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            font-size: 1.4rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            z-index: 10;
+        }
+
+        .modal-close:hover { background: var(--surface2); }
+
+        .modal-nav {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            font-size: 1.6rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+
+        .modal-nav:hover { background: var(--accent); border-color: var(--accent); }
+        .modal-nav:disabled { opacity: 0.25; cursor: not-allowed; }
+        .modal-nav.prev { left: 20px; }
+        .modal-nav.next { right: 20px; }
+
+        .modal-counter {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            color: var(--text2);
+            z-index: 10;
+        }
+
+        .modal-filename {
+            position: fixed;
+            bottom: 62px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: var(--text2);
+            max-width: 60vw;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <span style="font-size:1.4rem">🎬</span>
+    <h1>Lector Multimedia</h1>
+    <div class="header-stats">
+        <div class="stat-pill">Total: <span id="stat-total">0</span></div>
+        <div class="stat-pill">🖼️ <span id="stat-img">0</span></div>
+        <div class="stat-pill">🎥 <span id="stat-vid">0</span></div>
+    </div>
+</header>
+
+<div class="toolbar">
+    <label class="upload-btn">
+        📁 Seleccionar carpeta
+        <input type="file" id="folderInput" webkitdirectory directory multiple>
+    </label>
+
+    <div class="filter-group">
+        <button class="filter-btn active" data-filter="all">Todos</button>
+        <button class="filter-btn" data-filter="image">🖼️ Imágenes</button>
+        <button class="filter-btn" data-filter="video">🎥 Videos</button>
+    </div>
+
+    <input type="search" class="search-box" id="searchBox" placeholder="🔍 Buscar por nombre...">
+</div>
+
+<div id="progress-bar-wrap">
+    <div class="progress-track"><div id="progress-fill"></div></div>
+    <div id="progress-label">Procesando...</div>
+</div>
+
+<div class="gallery-wrap">
+    <div id="gallery">
+        <div id="empty-state">
+            <div class="icon">🗂️</div>
+            <h3>Sin archivos cargados</h3>
+            <p>Selecciona una carpeta para comenzar</p>
+        </div>
+    </div>
+</div>
+
+<div id="pagination"></div>
+
+<!-- Modal -->
+<div id="modal">
+    <button class="modal-close" id="modalClose">×</button>
+    <button class="modal-nav prev" id="prevBtn">‹</button>
+    <button class="modal-nav next" id="nextBtn">›</button>
+    <div class="modal-filename" id="modalFilename"></div>
+    <div class="modal-counter" id="modalCounter"></div>
+    <div id="modal-content"></div>
+</div>
+
+<script>
+    // ─────────────────────────────────────────────
+    // Estado global
+    // ─────────────────────────────────────────────
+    let allMedia      = [];   // Todos los archivos detectados
+    let filteredMedia = [];   // Resultado de filtro + búsqueda
+    let currentFilter = 'all';
+    let currentPage   = 1;
+    let modalIndex    = 0;    // índice en allMedia (para navegación en modal)
+
+    const PAGE_SIZE   = 100;  // Tarjetas por página — ajusta si quieres
+
+    // ─────────────────────────────────────────────
+    // Referencias DOM
+    // ─────────────────────────────────────────────
+    const folderInput   = document.getElementById('folderInput');
+    const gallery       = document.getElementById('gallery');
+    const pagination    = document.getElementById('pagination');
+    const searchBox     = document.getElementById('searchBox');
+    const progressWrap  = document.getElementById('progress-bar-wrap');
+    const progressFill  = document.getElementById('progress-fill');
+    const progressLabel = document.getElementById('progress-label');
+    const statTotal     = document.getElementById('stat-total');
+    const statImg       = document.getElementById('stat-img');
+    const statVid       = document.getElementById('stat-vid');
+    const modal         = document.getElementById('modal');
+    const modalContent  = document.getElementById('modal-content');
+    const modalClose    = document.getElementById('modalClose');
+    const modalCounter  = document.getElementById('modalCounter');
+    const modalFilename = document.getElementById('modalFilename');
+    const prevBtn       = document.getElementById('prevBtn');
+    const nextBtn       = document.getElementById('nextBtn');
+
+    // ─────────────────────────────────────────────
+    // Carga de archivos — SIN FileReader / base64
+    // Usa URL.createObjectURL() → solo puntero en RAM
+    // ─────────────────────────────────────────────
+    folderInput.addEventListener('change', async function (e) {
+        // Revocar URLs previas para liberar memoria
+        allMedia.forEach(m => URL.revokeObjectURL(m.src));
+        allMedia = [];
+
+        const files = Array.from(e.target.files).filter(f =>
+            f.type.startsWith('image/') || f.type.startsWith('video/')
+        );
+
+        if (!files.length) return;
+
+        // Mostrar barra de progreso
+        progressWrap.classList.add('visible');
+        progressFill.style.width = '0%';
+
+        files.sort((a, b) =>
+            (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name)
+        );
+
+        // Procesar en lotes para no bloquear el hilo principal
+        const BATCH = 500;
+        for (let i = 0; i < files.length; i += BATCH) {
+            const batch = files.slice(i, i + BATCH);
+            batch.forEach(file => {
+                const isVideo = file.type.startsWith('video/');
+                const fullPath = file.webkitRelativePath || file.name;
+                const parts = fullPath.split('/');
+                allMedia.push({
+                    src:      URL.createObjectURL(file),  // ← sin base64, sin RAM extra
+                    name:     file.name,
+                    path:     parts.slice(0, -1).join('/'),
+                    fullPath,
+                    size:     formatSize(file.size),
+                    type:     isVideo ? 'video' : 'image',
+                    id:       i + allMedia.length
+                });
+            });
+
+            // Actualizar progreso y ceder el hilo al navegador
+            const pct = Math.round(((i + batch.length) / files.length) * 100);
+            progressFill.style.width = pct + '%';
+            progressLabel.textContent = `${i + batch.length} / ${files.length} archivos`;
+            await yieldToMain();
+        }
+
+        progressWrap.classList.remove('visible');
+        folderInput.value = '';
+
+        currentFilter = 'all';
+        document.querySelectorAll('.filter-btn').forEach(b =>
+            b.classList.toggle('active', b.dataset.filter === 'all')
+        );
+        searchBox.value = '';
+        currentPage = 1;
+
+        applyFilterAndSearch();
+    });
+
+    // Cede el hilo principal por un frame — evita el congelamiento
+    function yieldToMain () {
+        return new Promise(resolve => setTimeout(resolve, 0));
+    }
+
+    function formatSize (bytes) {
+        if (!bytes) return '—';
+        const u = ['B','KB','MB','GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + u[i];
+    }
+
+    // ─────────────────────────────────────────────
+    // Filtro + búsqueda
+    // ─────────────────────────────────────────────
+    function applyFilterAndSearch () {
+        const q = searchBox.value.trim().toLowerCase();
+        filteredMedia = allMedia.filter(m => {
+            const typeOk = currentFilter === 'all' || m.type === currentFilter;
+            const nameOk = !q || m.name.toLowerCase().includes(q) || m.path.toLowerCase().includes(q);
+            return typeOk && nameOk;
+        });
+
+        // Actualizar stats del header
+        const imgs = allMedia.filter(m => m.type === 'image').length;
+        const vids = allMedia.filter(m => m.type === 'video').length;
+        statTotal.textContent = allMedia.length.toLocaleString();
+        statImg.textContent   = imgs.toLocaleString();
+        statVid.textContent   = vids.toLocaleString();
+
+        currentPage = 1;
+        renderPage();
+    }
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentFilter = btn.dataset.filter;
+            document.querySelectorAll('.filter-btn').forEach(b =>
+                b.classList.toggle('active', b === btn)
+            );
+            currentPage = 1;
+            applyFilterAndSearch();
+        });
+    });
+
+    let searchDebounce;
+    searchBox.addEventListener('input', () => {
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(applyFilterAndSearch, 250);
+    });
+
+    // ─────────────────────────────────────────────
+    // Renderizado con paginación
+    // ─────────────────────────────────────────────
+    function renderPage () {
+        gallery.innerHTML = '';
+
+        if (!filteredMedia.length) {
+            gallery.innerHTML = `
+                <div id="empty-state">
+                    <div class="icon">🔍</div>
+                    <h3>${allMedia.length ? 'Sin resultados' : 'Sin archivos cargados'}</h3>
+                    <p>${allMedia.length ? 'Intenta con otro filtro o búsqueda' : 'Selecciona una carpeta para comenzar'}</p>
+                </div>`;
+            pagination.innerHTML = '';
+            return;
+        }
+
+        const totalPages = Math.ceil(filteredMedia.length / PAGE_SIZE);
+        currentPage = Math.min(currentPage, totalPages);
+
+        const start = (currentPage - 1) * PAGE_SIZE;
+        const end   = Math.min(start + PAGE_SIZE, filteredMedia.length);
+        const slice = filteredMedia.slice(start, end);
+
+        // Construir HTML de tarjetas — sin listeners inline costosos
+        const frag = document.createDocumentFragment();
+
+        slice.forEach((media) => {
+            const card = document.createElement('div');
+            card.className = 'media-card';
+            card.dataset.id = media.id;
+
+            card.innerHTML = `
+                <div class="thumb-wrap">
+                    ${media.type === 'video'
+                        ? `<video src="${media.src}" preload="metadata"></video>
+                           <div class="play-overlay">▶</div>`
+                        : `<img src="${media.src}" loading="lazy" decoding="async" alt="${media.name}">`
+                    }
+                    <span class="type-badge ${media.type}">${media.type === 'video' ? 'video' : 'img'}</span>
+                    <button class="delete-btn" data-id="${media.id}" title="Eliminar">×</button>
+                </div>
+                <div class="card-info">
+                    <div class="card-name" title="${media.name}">${media.name}</div>
+                    <div class="card-meta">${media.size}${media.path ? ' · 📁 ' + media.path : ''}</div>
+                </div>`;
+
+            frag.appendChild(card);
+        });
+
+        gallery.appendChild(frag);
+
+        // Delegación de eventos — un solo listener en el gallery
+        gallery.onclick = (e) => {
+            const delBtn = e.target.closest('.delete-btn');
+            if (delBtn) {
+                e.stopPropagation();
+                deleteMedia(parseInt(delBtn.dataset.id));
+                return;
+            }
+            const card = e.target.closest('.media-card');
+            if (card) {
+                const id = parseInt(card.dataset.id);
+                const idx = allMedia.findIndex(m => m.id === id);
+                if (idx !== -1) openModal(idx);
+            }
+        };
+
+        renderPagination(totalPages);
+    }
+
+    // ─────────────────────────────────────────────
+    // Paginación
+    // ─────────────────────────────────────────────
+    function renderPagination (totalPages) {
+        if (totalPages <= 1) { pagination.innerHTML = ''; return; }
+
+        let html = '';
+        html += `<button class="page-btn" id="pgPrev" ${currentPage === 1 ? 'disabled' : ''}>‹ Anterior</button>`;
+
+        // Botones de página: muestra ventana de 5 alrededor de la actual
+        const range = pagRange(currentPage, totalPages);
+        let prev = null;
+        range.forEach(p => {
+            if (prev !== null && p - prev > 1) html += `<span style="color:var(--text2);padding:0 4px">…</span>`;
+            html += `<button class="page-btn ${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`;
+            prev = p;
+        });
+
+        html += `<span id="page-info">${currentPage} / ${totalPages} · ${filteredMedia.length.toLocaleString()} archivos</span>`;
+        html += `<button class="page-btn" id="pgNext" ${currentPage === totalPages ? 'disabled' : ''}>Siguiente ›</button>`;
+
+        pagination.innerHTML = html;
+
+        pagination.querySelectorAll('[data-page]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentPage = parseInt(btn.dataset.page);
+                renderPage();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+
+        document.getElementById('pgPrev')?.addEventListener('click', () => {
+            if (currentPage > 1) { currentPage--; renderPage(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+        });
+        document.getElementById('pgNext')?.addEventListener('click', () => {
+            if (currentPage < totalPages) { currentPage++; renderPage(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+        });
+    }
+
+    function pagRange (cur, total) {
+        const delta = 2;
+        const pages = new Set([1, total]);
+        for (let i = Math.max(2, cur - delta); i <= Math.min(total - 1, cur + delta); i++) pages.add(i);
+        return Array.from(pages).sort((a, b) => a - b);
+    }
+
+    // ─────────────────────────────────────────────
+    // Eliminar
+    // ─────────────────────────────────────────────
+    function deleteMedia (id) {
+        const idx = allMedia.findIndex(m => m.id === id);
+        if (idx !== -1) {
+            URL.revokeObjectURL(allMedia[idx].src);   // Liberar memoria del objeto
+            allMedia.splice(idx, 1);
+        }
+        applyFilterAndSearch();
+    }
+
+    // ─────────────────────────────────────────────
+    // Modal
+    // ─────────────────────────────────────────────
+    function openModal (idx) {
+        modalIndex = idx;
+        renderModal();
+        modal.classList.add('active');
+    }
+
+    function renderModal () {
+        const media = allMedia[modalIndex];
+        const cur   = modalContent.querySelector('video');
+        if (cur) cur.pause();
+
+        modalContent.innerHTML = media.type === 'video'
+            ? `<video src="${media.src}" controls autoplay></video>`
+            : `<img src="${media.src}" alt="${media.name}">`;
+
+        modalFilename.textContent = media.name;
+        modalCounter.textContent  = `${modalIndex + 1} / ${allMedia.length}`;
+        prevBtn.disabled = modalIndex === 0;
+        nextBtn.disabled = modalIndex === allMedia.length - 1;
+    }
+
+    prevBtn.addEventListener('click', () => {
+        if (modalIndex > 0) { modalIndex--; renderModal(); }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        if (modalIndex < allMedia.length - 1) { modalIndex++; renderModal(); }
+    });
+
+    function closeModalFn () {
+        const v = modalContent.querySelector('video');
+        if (v) v.pause();
+        modal.classList.remove('active');
+    }
+
+    modalClose.addEventListener('click', closeModalFn);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModalFn(); });
+
+    document.addEventListener('keydown', e => {
+        if (!modal.classList.contains('active')) return;
+        if (e.key === 'Escape')       closeModalFn();
+        if (e.key === 'ArrowLeft')    { if (modalIndex > 0) { modalIndex--; renderModal(); } }
+        if (e.key === 'ArrowRight')   { if (modalIndex < allMedia.length - 1) { modalIndex++; renderModal(); } }
+        if (e.key === ' ') {
+            e.preventDefault();
+            const v = modalContent.querySelector('video');
+            if (v) v.paused ? v.play() : v.pause();
+        }
+    });
+</script>
+</body>
+</html>
